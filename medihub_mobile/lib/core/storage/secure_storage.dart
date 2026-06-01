@@ -14,10 +14,20 @@ class SecureStorage {
   }
 
   static Future<String?> getToken() async {
-    return _storage.read(
+  try {
+    final token = await _storage.read(
       key: 'access_token',
     );
+
+    print('READ TOKEN: $token');
+
+    return token;
+  } catch (e) {
+    print('READ TOKEN ERROR: $e');
+
+    rethrow;
   }
+}
 
   static Future<void> clear() async {
     await _storage.deleteAll();
