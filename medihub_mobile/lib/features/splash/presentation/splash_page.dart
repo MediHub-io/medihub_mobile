@@ -1,45 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 
 import '../../../core/theme/app_colors.dart';
 
-class SplashPage extends StatelessWidget {
+class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
+
+  @override
+  State<SplashPage> createState() => _SplashPageState();
+}
+
+class _SplashPageState extends State<SplashPage> {
+
+  @override
+  void initState() {
+    super.initState();
+
+    Timer(
+      const Duration(seconds: 2),
+      () {
+        if (mounted) {
+          context.go('/login');
+        }
+      },
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-
-            Icon(
-              Icons.local_hospital_rounded,
-              size: 80,
-              color: AppColors.primary,
-            ),
-
-            SizedBox(height: 24),
-
-            Text(
-              'MediHub',
-              style: TextStyle(
-                fontSize: 36,
-                fontWeight: FontWeight.bold,
-                color: AppColors.dark,
-              ),
-            ),
-
-            SizedBox(height: 8),
-
-            Text(
-              'Kết nối sức khỏe – Nâng tầm chăm sóc',
-              style: TextStyle(
-                color: Colors.grey,
-              ),
-            ),
-          ],
+        child: Image.asset(
+          'assets/images/logo_full.png',
+          width: 350,
         ),
       ),
     );

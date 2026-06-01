@@ -8,8 +8,11 @@ class HomePage extends StatelessWidget {
     return const Scaffold(
       body: Center(
         child: Text(
-          'Home Page',
-          style: TextStyle(fontSize: 24),
+          'MediHub Home',
+          style: TextStyle(
+            fontSize: 28,
+            fontWeight: FontWeight.bold,
+          ),
         ),
       ),
     );
