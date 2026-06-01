@@ -29,6 +29,76 @@ class SecureStorage {
   }
 }
 
+static Future<void> saveUser({
+  required String fullName,
+  required String phone,
+  required String role,
+  required String organizationId,
+  required String patientId,
+  required String patientCode,
+}) async {
+  await _storage.write(
+    key: 'full_name',
+    value: fullName,
+  );
+
+  await _storage.write(
+  key: 'phone',
+  value: phone,
+);
+
+  await _storage.write(
+    key: 'role',
+    value: role,
+  );
+
+  await _storage.write(
+    key: 'organization_id',
+    value: organizationId,
+  );
+
+  await _storage.write(
+    key: 'patient_id',
+    value: patientId,
+    );
+
+    await _storage.write(
+    key: 'patient_code',
+    value: patientCode,
+    );
+}
+
+static Future<String?> getFullName() async {
+  return _storage.read(
+    key: 'full_name',
+  );
+}
+
+static Future<String?> getPhone() async {
+  return _storage.read(
+    key: 'phone',
+  );
+}
+
+static Future<String?> getRole() async {
+  return _storage.read(
+    key: 'role',
+  );
+}
+
+static Future<String?> getPatientId() async {
+  return _storage.read(
+    key: 'patient_id',
+  );
+}
+
+static Future<String?> getPatientCode() async {
+  return _storage.read(
+    key: 'patient_code',
+  );
+}
+
+
   static Future<void> clear() async {
     await _storage.deleteAll();
   }

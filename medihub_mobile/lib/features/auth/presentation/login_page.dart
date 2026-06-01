@@ -23,66 +23,60 @@ class _LoginPageState
   bool _loading = false;
 
   Future<void> _login() async {
-    try {
+  try {
+    setState(() {
+      _loading = true;
+    });
+
+    final service = AuthService();
+
+    final result = await service.login(
+      phone: _phoneController.text.trim(),
+      password: _passwordController.text,
+    );
+
+    final data = result['data'];
+
+    await SecureStorage.saveToken(
+      data['token'],
+    );
+
+    await SecureStorage.saveUser(
+      fullName: data['fullName'],
+      role: data['role'],
+      organizationId: data['organizationId'],
+      patientId: data['patientId'],
+      patientCode: data['patientCode'],
+      phone: data['phone'],
+    );
+    print(
+      'PATIENT ID = ${data['patientId']}',
+    );
+
+    print(
+      'PATIENT CODE = ${data['patientCode']}',
+    );
+
+    if (!mounted) return;
+
+    context.go('/home');
+  } catch (e) {
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context)
+        .showSnackBar(
+      SnackBar(
+        content: Text(e.toString()),
+      ),
+    );
+  } finally {
+    if (mounted) {
       setState(() {
-        _loading = true;
+        _loading = false;
       });
-
-      final service = AuthService();
-
-      final result =
-          await service.login(
-        phone:
-            _phoneController.text.trim(),
-        password:
-            _passwordController.text,
-      );
-
-      final data = result['data'];
-
-        await SecureStorage.saveToken(
-        data['token'],
-        );
-
-        if (!mounted) return;
-
-        context.go('/home');
-
-        debugPrint(
-        'Token saved',
-        );
-
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        const SnackBar(
-          content: Text(
-            'Đăng nhập thành công',
-          ),
-        ),
-      );
-    } catch (e) {
-      if (!mounted) return;
-
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(
-        SnackBar(
-          content: Text(
-            e.toString(),
-          ),
-        ),
-      );
-    } finally {
-      if (mounted) {
-        setState(() {
-          _loading = false;
-        });
-      }
     }
   }
+}
 
   @override
   Widget build(
