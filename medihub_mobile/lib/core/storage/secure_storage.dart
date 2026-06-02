@@ -68,6 +68,24 @@ static Future<void> saveUser({
     );
 }
 
+static Future<void> updateFullName(
+  String fullName,
+) async {
+  await _storage.write(
+    key: 'full_name',
+    value: fullName,
+  );
+}
+
+static Future<void> updatePhone(
+  String phone,
+) async {
+  await _storage.write(
+    key: 'phone',
+    value: phone,
+  );
+}
+
 static Future<String?> getFullName() async {
   return _storage.read(
     key: 'full_name',

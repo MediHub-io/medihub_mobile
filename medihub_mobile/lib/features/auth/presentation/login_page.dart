@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../data/auth_service.dart';
 import '../../../core/storage/secure_storage.dart';
 import 'package:go_router/go_router.dart';
+import 'package:dio/dio.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -60,16 +61,47 @@ class _LoginPageState
     if (!mounted) return;
 
     context.go('/home');
-  } catch (e) {
-    if (!mounted) return;
+  } on DioException catch (e) {
 
-    ScaffoldMessenger.of(context)
-        .showSnackBar(
-      SnackBar(
-        content: Text(e.toString()),
+  if (!mounted) return;
+
+  String message =
+      'Đăng nhập thất bại';
+
+  final data =
+      e.response?.data;
+
+  if (data is Map &&
+      data['message'] != null) {
+    message =
+        data['message']
+            .toString();
+  }
+
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
+    SnackBar(
+      backgroundColor:
+          Colors.red,
+      content: Text(message),
+    ),
+  );
+
+} catch (e) {
+
+  if (!mounted) return;
+
+  ScaffoldMessenger.of(context)
+      .showSnackBar(
+    SnackBar(
+      backgroundColor:
+          Colors.red,
+      content: Text(
+        e.toString(),
       ),
-    );
-  } finally {
+    ),
+  );
+} finally {
     if (mounted) {
       setState(() {
         _loading = false;

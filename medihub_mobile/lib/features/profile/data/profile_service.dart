@@ -16,4 +16,19 @@ class ProfileService {
 
     return response.data;
   }
+
+    Future<Map<String, dynamic>>
+        updatePatient({
+    required String patientId,
+    required Map<String, dynamic> data,
+    }) async {
+
+    final response =
+        await ApiClient.dio.put(
+        '/patients/$patientId',
+        data: data,
+    );
+
+    return response.data;
+    }   
 }

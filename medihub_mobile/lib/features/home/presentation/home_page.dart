@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-
+import '../../profile/presentation/patient_qr_page.dart';
 import '../../../core/storage/secure_storage.dart';
 import 'widgets/home_banner.dart';
 import 'widgets/menu_card.dart';
@@ -20,6 +20,7 @@ class _HomePageState
   String fullName = '';
   String role = '';
   String patientCode = '';
+  String patientId = '';
   String phone = '';
   String ageText = '';
 
@@ -39,20 +40,20 @@ class _HomePageState
     final code =
         await SecureStorage.getPatientCode();
 
-    final patientId =
-        await SecureStorage.getPatientId();
+    final pid =
+    await SecureStorage.getPatientId();
 
     final userPhone =
         await SecureStorage.getPhone();
 
-    if (patientId != null) {
+    if (pid != null) {
 
   final service =
       ProfileService();
 
   final result =
       await service.getPatient(
-    patientId,
+    pid,
   );
 
   final patient =
@@ -94,6 +95,7 @@ class _HomePageState
         role = userRole ?? '';
         phone = userPhone ?? '';
         patientCode = code ?? '';
+        patientId = pid ?? '';
         });
   }
 
@@ -188,11 +190,25 @@ class _HomePageState
                     ),
 
                     IconButton(
-                      onPressed: () {},
-                      icon: const Icon(
-                        Icons.qr_code,
-                      ),
-                    ),
+                        onPressed: () {
+
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    PatientQrPage(
+                                patientId: patientId,
+                                patientCode: patientCode,
+                                fullName: fullName,
+                                ),
+                            ),
+                            );
+
+                        },
+                        icon: const Icon(
+                            Icons.qr_code,
+                        ),
+                        ),
 
                     IconButton(
                       onPressed: () {},
@@ -284,11 +300,15 @@ class _HomePageState
                   MenuCard(
                     icon: Icons.person,
                     title: 'Hồ sơ',
-                    color: Color(0xFF1565C0),
-                    onTap: () {
-                        context.push('/profile');
-                        },
-                  ),
+                    color: const Color(0xFF1565C0),
+                    onTap: () async {
+
+                        await context.push('/profile');
+
+                        await _loadUser();
+
+                    },
+                    ),
 
                   MenuCard(
                     icon:
