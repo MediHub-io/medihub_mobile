@@ -8,6 +8,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../shared/widgets/main_bottom_navigation.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
@@ -434,6 +435,10 @@ Future<void> saveProfile() async {
     BuildContext context,
   ) {
     return Scaffold(
+        bottomNavigationBar:
+            const MainBottomNavigation(
+        currentIndex: 3,
+        ),
       appBar: AppBar(
             leading: IconButton(
                 icon: const Icon(

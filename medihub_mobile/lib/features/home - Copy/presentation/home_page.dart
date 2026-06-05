@@ -7,8 +7,6 @@ import 'widgets/menu_card.dart';
 import '../../profile/data/profile_service.dart';
 import '../../news/data/news_service.dart';
 import '../../../core/theme/app_colors.dart';
-import 'dart:async';
-import '../../../shared/widgets/main_bottom_navigation.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({super.key});
@@ -27,53 +25,6 @@ class _HomePageState
   String patientId = '';
   String phone = '';
   String ageText = '';
-  int currentBanner = 0;
-  Timer? bannerTimer;
-  
-  final PageController bannerController =
-    PageController();
-	
-void startBannerAutoSlide() {
-
-  bannerTimer?.cancel();
-
-  bannerTimer =
-      Timer.periodic(
-    const Duration(
-      seconds: 4,
-    ),
-    (_) {
-
-      if (news.isEmpty ||
-          !bannerController.hasClients) {
-        return;
-      }
-
-      final total =
-          news.length > 4
-              ? 4
-              : news.length;
-
-      int next =
-          currentBanner + 1;
-
-      if (next >= total) {
-        next = 0;
-      }
-
-      bannerController.animateToPage(
-        next,
-        duration:
-            const Duration(
-          milliseconds: 500,
-        ),
-        curve:
-            Curves.easeInOut,
-      );
-    },
-  );
-}
-	
 
   List<dynamic> news = [];
   bool loadingNews = true;
@@ -96,12 +47,10 @@ void startBannerAutoSlide() {
 
         if (!mounted) return;
 
-       setState(() {
-		  news = result['data'];
-		  loadingNews = false;
-		});
-
-		startBannerAutoSlide();
+        setState(() {
+        news = result['data'];
+        loadingNews = false;
+        });
     } catch (e) {
         debugPrint(
         'LOAD NEWS ERROR = $e',
@@ -191,243 +140,6 @@ void startBannerAutoSlide() {
       context.go('/login');
     }
   }
-
-Widget buildHeader() {
-  return Container(
-    //margin: const EdgeInsets.all(16), //Bo góc tất cả
-    //padding: const EdgeInsets.symmetric(
-    //  horizontal: 16,
-   //   vertical: 14,
-  //  ),
-  
-  padding:
-    const EdgeInsets.fromLTRB(
-	  20,
-	  14,
-	  20,
-	  18,
-	),
-	
-    decoration: BoxDecoration(
-      color: AppColors.primary,
-      borderRadius:
-    const BorderRadius.only(
-  bottomLeft:
-      Radius.circular(24),
-  bottomRight:
-      Radius.circular(24),
-),
-      boxShadow: const [
-        BoxShadow(
-          color: AppColors.shadow,
-          blurRadius: 20,
-          offset: Offset(0, 8),
-        ),
-      ],
-    ),
-    child: Row(
-      children: [
-
-        Container(
-          padding:
-              const EdgeInsets.all(2),
-          decoration:
-              const BoxDecoration(
-            color: Colors.white,
-            shape:
-                BoxShape.circle,
-          ),
-          child:
-              const CircleAvatar(
-            radius: 24,
-            backgroundImage:
-                AssetImage(
-              'assets/images/logo_icon.png',
-            ),
-          ),
-        ),
-
-        const SizedBox(
-          width: 12,
-        ),
-
-        Expanded(
-          child: Column(
-            crossAxisAlignment:
-                CrossAxisAlignment
-                    .start,
-            children: [
-
-              Text(
-                fullName
-                    .toUpperCase(),
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white,
-                  fontSize: 20,
-                  fontWeight:
-                      FontWeight.bold,
-                ),
-              ),
-
-              const SizedBox(
-                height: 4,
-              ),
-
-              Text(
-                '$ageText • $phone',
-                style:
-                    const TextStyle(
-                  color:
-                      Colors.white70,
-                ),
-              ),
-            ],
-          ),
-        ),
-
-        IconButton(
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) =>
-                    PatientQrPage(
-                  patientId:
-                      patientId,
-                  patientCode:
-                      patientCode,
-                  fullName:
-                      fullName,
-                ),
-              ),
-            );
-          },
-          icon: const Icon(
-            Icons.grid_view_rounded,
-            color: Colors.white,
-          ),
-        ),
-
-        const Icon(
-          Icons.notifications_none,
-          color: Colors.white,
-        ),
-      ],
-    ),
-  );
-}
-
-
-Widget newsSlider() {
-  final banners =
-      news.take(4).toList();
-
-  if (banners.isEmpty) {
-    return const SizedBox();
-  }
-
-  return SizedBox(
-    height: 220,
-    child: PageView.builder(
-		  controller:
-			  bannerController,
-      itemCount: banners.length,
-      onPageChanged: (index) {
-        setState(() {
-          currentBanner = index;
-        });
-      },
-      itemBuilder: (
-        context,
-        index,
-      ) {
-
-        final item =
-            banners[index];
-
-        return InkWell(
-          borderRadius:
-              BorderRadius.circular(
-            24,
-          ),
-          onTap: () {
-            context.push(
-              '/news/${item['id']}',
-            );
-          },
-          child: Stack(
-            children: [
-
-              ClipRRect(
-                borderRadius:
-                    BorderRadius.circular(
-                  24,
-                ),
-                child:
-                    Image.network(
-                  item['imageUrl'],
-                  width:
-                      double.infinity,
-                  height: 220,
-                  fit:
-                      BoxFit.cover,
-                ),
-              ),
-
-              Container(
-                decoration:
-                    BoxDecoration(
-                  borderRadius:
-                      BorderRadius.circular(
-                    24,
-                  ),
-				  
-
-				  
-                  gradient:
-                      LinearGradient(
-                    begin:
-                        Alignment.bottomCenter,
-                    end:
-                        Alignment.topCenter,
-                    colors: [
-                      Colors.black54,
-                      Colors.transparent,
-                    ],
-                  ),
-                ),
-              ),
-
-              Positioned(
-                left: 16,
-                right: 16,
-                bottom: 16,
-                child: Text(
-                  item['title'] ?? '',
-                  maxLines: 2,
-                  overflow:
-                      TextOverflow
-                          .ellipsis,
-                  style:
-                      const TextStyle(
-                    color:
-                        Colors.white,
-                    fontSize: 18,
-                    fontWeight:
-                        FontWeight.bold,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        );
-      },
-    ),
-  );
-}
-
 
 
     Widget newsCard(
@@ -589,112 +301,143 @@ children: [
 );
 }
 
-@override
-void dispose() {
-
-  bannerTimer?.cancel();
-
-  bannerController.dispose();
-
-  super.dispose();
-}
-
-
   @override
   Widget build(
     BuildContext context,
   ) {
     return Scaffold(
-
-        bottomNavigationBar:
-            const MainBottomNavigation(
-        currentIndex: 0,
-        ),
-
         body: Container(
             decoration: const BoxDecoration(
-			  color: Color(
-				0xFFF7F9FC,
-			  ),
-			),
+            gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: AppColors.gradient,
+            ),
+            ),
 
       child: SafeArea(
-  child: Column(
-    children: [
-
-      buildHeader(),
-	  
-	  const SizedBox(
-		  height: 20,
-		),
-
-      Expanded(
-        child:
-            SingleChildScrollView(
+        child: SingleChildScrollView(
           padding:
-              const EdgeInsets.symmetric(
-            horizontal: 16,
-          ),
+              const EdgeInsets.all(16),
           child: Column(
             children: [
 
- 
+              // PROFILE
 
- // BANNER
+              Container(
+                padding:
+                    const EdgeInsets.all(
+                  12,
+                ),
+                decoration:
+                    BoxDecoration(
+                  color: AppColors.card,
+                  borderRadius:
+                      BorderRadius.circular(
+                    18,
+                  ),
+                  boxShadow: const [
+                    BoxShadow(
+                      color: AppColors.shadow,
+                      blurRadius: 6,
+                    ),
+                  ],
+                ),
+                child: Row(
+                  children: [
 
-              newsSlider(),
-			  
-			  
-			 const SizedBox(
-			  height: 12,
-			),
+                    const CircleAvatar(
+                      radius: 30,
+                      backgroundImage:
+                          AssetImage(
+                        'assets/images/logo_icon.png',
+                      ),
+                    ),
 
-if (news.isNotEmpty)
-  Row(
-    mainAxisAlignment:
-        MainAxisAlignment.center,
-    children: List.generate(
-      news.length > 4
-          ? 4
-          : news.length,
-      (index) {
+                    const SizedBox(
+                      width: 12,
+                    ),
 
-        final selected =
-            currentBanner ==
-                index;
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment:
+                            CrossAxisAlignment
+                                .start,
+                        children: [
 
-        return AnimatedContainer(
-          duration:
-              const Duration(
-            milliseconds: 250,
-          ),
-          margin:
-              const EdgeInsets.symmetric(
-            horizontal: 4,
-          ),
-          width:
-              selected
-                  ? 24
-                  : 8,
-          height: 8,
-          decoration:
-              BoxDecoration(
-            color: selected
-                ? AppColors.primary
-                : Colors.grey.shade300,
-            borderRadius:
-                BorderRadius.circular(
-              20,
-            ),
-          ),
-        );
-      },
-    ),
-  ), 
-			 
+                          Text(
+                           '${fullName.toUpperCase()} - $ageText',
+                            style: const TextStyle(
+                                fontSize: 17,
+                                fontWeight: FontWeight.bold,
+                            ),
+                            ),
+
+                          const SizedBox(
+                            height: 4,
+                          ),
+
+                          Text(
+                                'Mã Bệnh nhân: $patientCode',
+                                style: const TextStyle(
+                                   color: AppColors.secondary,
+                                    fontWeight: FontWeight.bold,
+                                ),
+                            ),
+                        ],
+                      ),
+                    ),
+
+                    IconButton(
+                        onPressed: () {
+
+                            Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                                builder: (_) =>
+                                    PatientQrPage(
+                                patientId: patientId,
+                                patientCode: patientCode,
+                                fullName: fullName,
+                                ),
+                            ),
+                            );
+
+                        },
+                        icon: const Icon(
+                            Icons.qr_code,
+                        ),
+                        ),
+
+                    IconButton(
+                      onPressed: () {},
+                      icon: const Icon(
+                        Icons
+                            .notifications_none,
+                      ),
+                    ),
+
+                    IconButton(
+                      onPressed:
+                          _logout,
+                      icon: const Icon(
+                        Icons.logout,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
 
               const SizedBox(
-                height: 20,
+                height: 16,
+              ),
+
+              // BANNER
+
+              const HomeBanner(),
+
+              const SizedBox(
+                height: 16,
               ),
 
               // MENU
@@ -861,15 +604,12 @@ if (news.isNotEmpty)
                 ...news.map(
                     (item) => newsCard(item),
                 ),
-             ],
+            ],
           ),
         ),
       ),
-    ],
-  ),
-),
-),
-);
+      ),
+    );
     
   }
 }

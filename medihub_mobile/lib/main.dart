@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'routes/app_router.dart';
 import 'core/theme/app_theme.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter_quill/flutter_quill.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -20,12 +22,24 @@ class MediHubApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
    return MaterialApp.router(
-    title: 'MediHub',
-    debugShowCheckedModeBanner: false,
+      title: 'MediHub',
+      debugShowCheckedModeBanner: false,
 
-    theme: AppTheme.lightTheme,
+      theme: AppTheme.lightTheme,
 
-    routerConfig: appRouter,
-  );
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+        FlutterQuillLocalizations.delegate,
+      ],
+
+      supportedLocales: const [
+        Locale('vi'),
+        Locale('en'),
+      ],
+
+      routerConfig: appRouter,
+    );
   }
 }

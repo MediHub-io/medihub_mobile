@@ -42,6 +42,7 @@ dependencies:
   qr_flutter: ^4.1.0
   image_picker: ^1.1.2
   supabase_flutter: ^2.9.1
+  flutter_quill: ^11.4.1
 
 dev_dependencies:
   flutter_test:
