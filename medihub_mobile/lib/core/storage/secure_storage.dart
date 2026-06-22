@@ -13,18 +13,12 @@ class SecureStorage {
     );
   }
 
-  static Future<String?> getToken() async {
+static Future<String?> getToken() async {
   try {
-    final token = await _storage.read(
+    return await _storage.read(
       key: 'access_token',
     );
-
-    print('READ TOKEN: $token');
-
-    return token;
   } catch (e) {
-    print('READ TOKEN ERROR: $e');
-
     rethrow;
   }
 }
@@ -34,6 +28,8 @@ static Future<void> saveUser({
   required String phone,
   required String role,
   required String organizationId,
+  String? organizationCode,
+  String? organizationName,
   required String patientId,
   required String patientCode,
 }) async {
@@ -55,6 +51,16 @@ static Future<void> saveUser({
   await _storage.write(
     key: 'organization_id',
     value: organizationId,
+  );
+
+  await _storage.write(
+    key: 'organization_code',
+    value: organizationCode ?? '',
+  );
+
+  await _storage.write(
+    key: 'organization_name',
+    value: organizationName ?? '',
   );
 
   await _storage.write(
@@ -86,6 +92,15 @@ static Future<void> updatePhone(
   );
 }
 
+static Future<void> updatePatientId(
+  String patientId,
+) async {
+  await _storage.write(
+    key: 'patient_id',
+    value: patientId,
+  );
+}
+
 static Future<String?> getFullName() async {
   return _storage.read(
     key: 'full_name',
@@ -113,6 +128,24 @@ static Future<String?> getPatientId() async {
 static Future<String?> getPatientCode() async {
   return _storage.read(
     key: 'patient_code',
+  );
+}
+
+static Future<String?> getOrganizationId() async {
+  return _storage.read(
+    key: 'organization_id',
+  );
+}
+
+static Future<String?> getOrganizationCode() async {
+  return _storage.read(
+    key: 'organization_code',
+  );
+}
+
+static Future<String?> getOrganizationName() async {
+  return _storage.read(
+    key: 'organization_name',
   );
 }
 

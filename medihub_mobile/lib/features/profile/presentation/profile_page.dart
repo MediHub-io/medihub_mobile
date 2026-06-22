@@ -1,265 +1,71 @@
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
-import '../../../core/storage/secure_storage.dart';
-import '../data/profile_service.dart';
-import 'package:dio/dio.dart';
-import '../../location/data/location_service.dart';
-import 'dart:io';
-import 'package:flutter/foundation.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import '../../../core/storage/secure_storage.dart';
+import '../../../core/theme/app_colors.dart';
+import '../../../core/utils/date_formatter.dart';
 import '../../../shared/widgets/main_bottom_navigation.dart';
+import '../data/profile_service.dart';
+import 'patient_qr_page.dart';
 
 class ProfilePage extends StatefulWidget {
   const ProfilePage({super.key});
 
   @override
-  State<ProfilePage> createState() =>
-      _ProfilePageState();
+  State<ProfilePage> createState() => _ProfilePageState();
 }
 
-class _ProfilePageState
-    extends State<ProfilePage> {
-
-    List<dynamic> provinces = [];
-    List<dynamic> wards = [];
-
-    dynamic selectedProvince;
-    dynamic selectedWard;
-
-
+class _ProfilePageState extends State<ProfilePage> {
   bool _loading = true;
-  bool isEditing = false;
-
-    final fullNameController =
-        TextEditingController();
-
-    final phoneController =
-        TextEditingController();
-
-    final citizenController =
-        TextEditingController();
-
-    final ethnicController =
-        TextEditingController();
-
-    final nationalityController =
-        TextEditingController();
-
-    final insuranceController =
-        TextEditingController();
-
-    DateTime? dob;
-
-    String gender = 'MALE';
-
   Map<String, dynamic>? patient;
+  String patientId = '';
+  String patientCode = '';
 
   @override
-    void initState() {
+  void initState() {
     super.initState();
-
-    initData();
-    }
-
-    Future<void> initData() async {
-    await loadProfile();
-    await loadProvinces();
-    }
-    Future<void> loadProvinces() async {
-
-  final service =
-      LocationService();
-
-  final result =
-      await service.getProvinces();
-
-  debugPrint(
-    'PROVINCES COUNT = ${result.length}',
-  );
-
-  debugPrint(
-    'FIRST PROVINCE = ${result.first}',
-  );
-
-  provinces = result;
-
-    if (patient != null) {
-
-    try {
-        debugPrint(
-        'DB PROVINCE = ${patient!['province']}',
-        );
-        selectedProvince =
-            provinces.firstWhere(
-        (p) =>
-            p['name'] ==
-            patient!['province'],
-        );
-
-        debugPrint(
-        'RESTORED PROVINCE = ${selectedProvince['name']}',
-        );
-
-        final service =
-            LocationService();
-
-        wards =
-            await service.getWardsByProvince(
-            selectedProvince['code'],
-            );
-
-        selectedWard =
-            wards.firstWhere(
-            (w) =>
-                w['name'] ==
-                patient!['ward'],
-            );
-
-    } catch (e) {
-        debugPrint(
-        'RESTORE LOCATION ERROR = $e',
-        );
-    }
-    }
-
-    setState(() {});
-}
-
-    Future<void> uploadAvatar() async {
-    try {
-        final image = await ImagePicker().pickImage(
-        source: ImageSource.gallery,
-        imageQuality: 80,
-        );
-
-        if (image == null) return;
-
-        final patientId =
-            await SecureStorage.getPatientId();
-
-        if (patientId == null) return;
-
-        final fileName =
-            '$patientId-${DateTime.now().millisecondsSinceEpoch}.jpg';
-
-        if (kIsWeb) {
-            final bytes = await image.readAsBytes();
-
-            await Supabase.instance.client.storage
-                .from('avatars')
-                .uploadBinary(
-                    fileName,
-                    bytes,
-                );
-            } else {
-            await Supabase.instance.client.storage
-                .from('avatars')
-                .upload(
-                    fileName,
-                    File(image.path),
-                );
-            }
-
-        final avatarUrl =
-            Supabase.instance.client.storage
-                .from('avatars')
-                .getPublicUrl(fileName);
-
-        final service = ProfileService();
-
-        await service.updatePatient(
-        patientId: patientId,
-        data: {
-            'avatarUrl': avatarUrl,
-        },
-        );
-
-        await loadProfile();
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-            content: Text(
-            'Cập nhật ảnh đại diện thành công',
-            ),
-        ),
-        );
-    } catch (e, stackTrace) {
-        debugPrint('UPLOAD AVATAR ERROR = $e');
-        debugPrint(stackTrace.toString());
-        }
-    }
+    loadProfile();
+  }
 
   Future<void> loadProfile() async {
     try {
-      final patientId =
-          await SecureStorage
-              .getPatientId();
-        debugPrint(
-        'PROFILE PATIENT ID = $patientId',
-        );
+      final result = await ProfileService().getMe();
+      final data = Map<String, dynamic>.from(result['data'] as Map);
+      final resolvedPatientId = data['id']?.toString() ?? '';
+      final resolvedPatientCode = data['patientCode']?.toString() ?? '';
 
-      if (patientId == null) {
-        throw Exception(
-          'PatientId not found',
-        );
+      if (resolvedPatientId.isEmpty) {
+        throw Exception('PatientId not found');
       }
 
-      final service =
-          ProfileService();
-
-      final result =
-          await service.getPatient(
-        patientId,
+      await SecureStorage.saveUser(
+        fullName: data['fullName']?.toString() ?? '',
+        phone: data['phone']?.toString() ?? '',
+        role: data['user']?['role']?.toString() ?? 'PATIENT',
+        organizationId: data['organizationId']?.toString() ??
+            data['user']?['organizationId']?.toString() ??
+            '',
+        patientId: resolvedPatientId,
+        patientCode: resolvedPatientCode,
       );
 
+      if (!mounted) return;
+
       setState(() {
-        patient = result['data'];
-        // selectedProvince =
-        //     patient!['province'];
-
-        // selectedDistrict =
-        //     patient!['district'];
-
-        // selectedWard =
-        //     patient!['ward'];
-
-        fullNameController.text =
-            patient!['fullName'] ?? '';
-
-        phoneController.text =
-            patient!['phone'] ?? '';
-
-        citizenController.text =
-            patient!['citizenId'] ?? '';
-
-        ethnicController.text =
-            patient!['ethnic'] ?? '';
-
-        nationalityController.text =
-            patient!['nationality'] ?? '';
-
-        insuranceController.text =
-            patient!['insuranceNo'] ?? '';
-        
-        if (patient!['dob'] != null) {
-            dob = DateTime.parse(
-                patient!['dob'],
-            );
-            }
-
-            gender =
-                patient!['gender'] ??
-                'MALE';
-
+        patient = data;
+        patientId = resolvedPatientId;
+        patientCode = resolvedPatientCode;
         _loading = false;
       });
     } catch (e) {
-      debugPrint(
-        e.toString(),
-      );
+      debugPrint('LOAD PROFILE ERROR = $e');
+
+      if (!mounted) return;
 
       setState(() {
         _loading = false;
@@ -267,546 +73,366 @@ class _ProfilePageState
     }
   }
 
-  Widget info(
-    String label,
-    String value,
-  ) {
-    return Card(
-      child: ListTile(
-        title: Text(label),
-        subtitle: Text(value),
+  Future<void> uploadAvatar() async {
+    try {
+      final image = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        imageQuality: 80,
+      );
+
+      if (image == null) return;
+
+      final patientId = await SecureStorage.getPatientId();
+
+      if (patientId == null) return;
+
+      final fileName =
+          '$patientId-${DateTime.now().millisecondsSinceEpoch}.jpg';
+
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+
+        await Supabase.instance.client.storage
+            .from('avatars')
+            .uploadBinary(fileName, bytes);
+      } else {
+        await Supabase.instance.client.storage
+            .from('avatars')
+            .upload(fileName, File(image.path));
+      }
+
+      final avatarUrl = Supabase.instance.client.storage
+          .from('avatars')
+          .getPublicUrl(fileName);
+
+      await ProfileService().updateMe({'avatarUrl': avatarUrl});
+
+      await loadProfile();
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Cập nhật ảnh đại diện thành công')),
+      );
+    } catch (e, stackTrace) {
+      debugPrint('UPLOAD AVATAR ERROR = $e');
+      debugPrint(stackTrace.toString());
+    }
+  }
+
+  String formatDob(dynamic value) {
+    return DateFormatter.displayDate(value);
+  }
+
+  String formatGender(dynamic value) {
+    if (value == 'MALE') return 'Nam';
+    if (value == 'FEMALE') return 'Nữ';
+    return value?.toString() ?? '';
+  }
+
+  String summaryContactText() {
+    final phone = patient?['phone']?.toString() ?? '';
+
+    if (patientCode.isEmpty) {
+      return phone;
+    }
+
+    if (phone.isEmpty) {
+      return patientCode;
+    }
+
+    return '$patientCode • $phone';
+  }
+
+  void showComingSoon(String title) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text('$title đang được phát triển')));
+  }
+
+  ImageProvider avatarImage() {
+    final avatarUrl = patient?['avatarUrl']?.toString() ?? '';
+
+    if (avatarUrl.isNotEmpty) {
+      return NetworkImage(avatarUrl);
+    }
+
+    return const AssetImage('assets/images/logo_icon.png');
+  }
+
+  Widget buildHeader() {
+    return Container(
+      decoration: const BoxDecoration(
+        color: AppColors.primary,
+        borderRadius: BorderRadius.only(
+          bottomLeft: Radius.circular(28),
+          bottomRight: Radius.circular(28),
+        ),
+      ),
+      padding: const EdgeInsets.fromLTRB(16, 14, 16, 22),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              const SizedBox(width: 48),
+              const Expanded(
+                child: Text(
+                  'Hồ sơ',
+                  textAlign: TextAlign.center,
+                  style: TextStyle(
+                    color: Colors.white,
+                    fontSize: 20,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 48),
+            ],
+          ),
+
+          const SizedBox(height: 8),
+
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: const [
+                BoxShadow(
+                  color: AppColors.shadow,
+                  blurRadius: 18,
+                  offset: Offset(0, 8),
+                ),
+              ],
+            ),
+            child: Row(
+              children: [
+                GestureDetector(
+                  onTap: uploadAvatar,
+                  child: Stack(
+                    clipBehavior: Clip.none,
+                    children: [
+                      CircleAvatar(
+                        radius: 36,
+                        backgroundColor: AppColors.primaryLight,
+                        backgroundImage: avatarImage(),
+                      ),
+                      Positioned(
+                        right: -2,
+                        bottom: -2,
+                        child: Container(
+                          width: 26,
+                          height: 26,
+                          decoration: BoxDecoration(
+                            color: AppColors.primary,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: const Icon(
+                            Icons.camera_alt_outlined,
+                            color: Colors.white,
+                            size: 14,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                const SizedBox(width: 14),
+
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        patient?['fullName'] ?? '',
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: AppColors.textPrimary,
+                        ),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        '${formatGender(patient?['gender'])} • ${formatDob(patient?['dob'])}',
+                        style: const TextStyle(color: AppColors.textSecondary),
+                      ),
+
+                      const SizedBox(height: 6),
+
+                      Text(
+                        summaryContactText(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: AppColors.textSecondary,
+                          fontSize: 13,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+
+                IconButton(
+                  onPressed: openQrPage,
+                  icon: const Icon(
+                    Icons.qr_code_rounded,
+                    color: AppColors.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  Widget editField(
-    String label,
-    TextEditingController controller,
-    ) {
-    return Card(
-        child: Padding(
-        padding:
-            const EdgeInsets.all(12),
-        child: TextField(
-            controller: controller,
-            decoration:
-                InputDecoration(
-            labelText: label,
-            border:
-                const OutlineInputBorder(),
-            ),
-        ),
-        ),
-    );
-    }
-
-Future<void> saveProfile() async {
-
-  try {
-
-    final patientId =
-        await SecureStorage
-            .getPatientId();
-
-    if (patientId == null) {
-      return;
-    }
-
-    final service =
-        ProfileService();
-
-    debugPrint(
-    'SAVE DATA = ${{
-        'fullName': fullNameController.text,
-        'phone': phoneController.text,
-        'citizenId': citizenController.text,
-        'ethnic': ethnicController.text,
-        'nationality': nationalityController.text,
-        'insuranceNo': insuranceController.text,
-        'gender': gender,
-        'dob': dob?.toIso8601String(),
-    }}',
-    );
-
-
-    await service.updatePatient(
-      patientId: patientId,
-
-      data: {
-
-        'fullName':
-            fullNameController.text,
-
-        'phone':
-            phoneController.text,
-
-        'citizenId':
-            citizenController.text,
-
-        'ethnic':
-            ethnicController.text,
-
-        'nationality':
-            nationalityController.text,
-
-        'insuranceNo':
-            insuranceController.text,
-
-        'province':
-            selectedProvince?['name'],
-
-        'ward':
-            selectedWard?['name'],
-
-        'gender':
-            gender,
-
-        'dob':
-            dob?.toIso8601String(),
-      },
-    );
-
-    await SecureStorage.updateFullName(
-        fullNameController.text,
-        );
-
-        await SecureStorage.updatePhone(
-        phoneController.text,
-        );
-
-    ScaffoldMessenger.of(
+  void openQrPage() {
+    Navigator.push(
       context,
-    ).showSnackBar(
-      const SnackBar(
-        content: Text(
-          'Cập nhật hồ sơ thành công',
+      MaterialPageRoute(
+        builder: (_) => PatientQrPage(
+          patientId: patientId,
+          patientCode: patientCode,
+          fullName: patient?['fullName'] ?? '',
+          phone: patient?['phone'] ?? '',
+          dob: formatDob(patient?['dob']),
         ),
       ),
     );
+  }
 
-    setState(() {
-      isEditing = false;
-    });
-
-
-    await loadProfile();
-
-        } on DioException catch (e) {
-
-        debugPrint(
-            'STATUS = ${e.response?.statusCode}',
-        );
-
-        debugPrint(
-            'RESPONSE = ${e.response?.data}',
-        );
-
-        String message =
-            'Cập nhật thất bại';
-
-        final data = e.response?.data;
-
-        if (data is Map &&
-            data['message'] != null) {
-            message = data['message'];
-        }
-
-        if (!mounted) return;
-
-        ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-            content: Text(message),
-            backgroundColor: Colors.red,
+  Widget menuItem({
+    required IconData icon,
+    required String title,
+    VoidCallback? onTap,
+  }) {
+    return InkWell(
+      onTap: onTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 15),
+        decoration: const BoxDecoration(
+          color: Colors.white,
+          border: Border(bottom: BorderSide(color: Color(0xFFE5E7EB))),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 38,
+              height: 38,
+              decoration: BoxDecoration(
+                color: AppColors.primaryLight,
+                borderRadius: BorderRadius.circular(12),
+              ),
+              child: Icon(icon, color: AppColors.primary, size: 22),
             ),
-        );
 
-        } catch (e) {
+            const SizedBox(width: 14),
 
-        debugPrint(
-            'SAVE PROFILE ERROR = $e',
-        );
+            Expanded(
+              child: Text(
+                title,
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                  color: AppColors.textPrimary,
+                ),
+              ),
+            ),
 
-    }
-}
-
+            const Icon(Icons.chevron_right, color: AppColors.textSecondary),
+          ],
+        ),
+      ),
+    );
+  }
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return Scaffold(
-        bottomNavigationBar:
-            const MainBottomNavigation(
-        currentIndex: 3,
-        ),
-      appBar: AppBar(
-            leading: IconButton(
-                icon: const Icon(
-                Icons.arrow_back,
-                ),
-                onPressed: () {
-                context.pop();
-                },
-            ),
-            title: const Text(
-                'Hồ sơ bệnh nhân',
-            ),
-        ),
-
+      bottomNavigationBar: const MainBottomNavigation(currentIndex: 3),
       body: _loading
-          ? const Center(
-              child:
-                  CircularProgressIndicator(),
-            )
+          ? const Center(child: CircularProgressIndicator())
           : patient == null
-              ? const Center(
-                  child: Text(
-                    'Không tải được hồ sơ',
-                  ),
-                )
-              : ListView(
-                  padding:
-                      const EdgeInsets.all(
-                    16,
-                  ),
-
+          ? const Center(child: Text('Không tải được hồ sơ'))
+          : Container(
+              color: const Color(0xFFF7F9FC),
+              child: SafeArea(
+                child: Column(
                   children: [
+                    buildHeader(),
 
-                    Center(
-                        child: GestureDetector(
-                            onTap: uploadAvatar,
-                            child: CircleAvatar(
-                            radius: 50,
+                    const SizedBox(height: 18),
 
-                            backgroundImage:
-                                patient?['avatarUrl'] != null &&
-                                        patient!['avatarUrl']
-                                            .toString()
-                                            .isNotEmpty
-                                    ? NetworkImage(
-                                        patient!['avatarUrl'],
-                                        )
-                                    : null,
+                    Expanded(
+                      child: ListView(
+                        padding: const EdgeInsets.symmetric(horizontal: 16),
+                        children: [
+                          ClipRRect(
+                            borderRadius: BorderRadius.circular(16),
+                            child: Column(
+                              children: [
+                                menuItem(
+                                  icon: Icons.person_outline,
+                                  title: 'Thông tin cá nhân',
+                                  onTap: () async {
+                                    await context.push('/profile/detail');
 
-                            child:
-                                patient?['avatarUrl'] == null ||
-                                        patient!['avatarUrl']
-                                            .toString()
-                                            .isEmpty
-                                    ? const Icon(
-                                        Icons.person,
-                                        size: 50,
-                                        )
-                                    : null,
+                                    await loadProfile();
+                                  },
+                                ),
+                                menuItem(
+                                  icon: Icons.group_outlined,
+                                  onTap: () {
+                                    context.push('/profile/relatives');
+                                  },
+                                  title: 'Người thân',
+                                ),
+                                menuItem(
+                                  icon: Icons.card_giftcard_outlined,
+                                  onTap: () {
+                                    context.push('/profile/referral');
+                                  },
+                                  title: 'Giới thiệu bạn bè',
+                                ),
+                                menuItem(
+                                  icon: Icons.policy_outlined,
+                                  onTap: () {
+                                    context.push('/profile/policy');
+                                  },
+                                  title: 'Chính sách',
+                                ),
+                                menuItem(
+                                  icon: Icons.lock_outline,
+                                  onTap: () {
+                                    context.push('/profile/change-password');
+                                  },
+                                  title: 'Đổi mật khẩu',
+                                ),
+                                menuItem(
+                                  icon: Icons.phone_android_outlined,
+                                  onTap: () {
+                                    context.push('/profile/change-phone');
+                                  },
+                                  title: 'Đổi số điện thoại',
+                                ),
+                              ],
                             ),
-                        ),
-                        ),
-
-                    const SizedBox(
-                      height: 20,
+                          ),
+                        ],
+                      ),
                     ),
-
-                    info(
-                      'Mã bệnh nhân',
-                      patient![
-                              'patientCode'] ??
-                          '',
-                    ),
-
-                    isEditing
-                    ? editField(
-                        'Họ và tên',
-                        fullNameController,
-                    )
-                    : info(
-                        'Họ và tên',
-                        patient!['fullName'] ?? '',
-                    ),
-
-
-                    isEditing
-                        ? Card(
-                            child: ListTile(
-                            title:
-                                const Text(
-                                'Ngày sinh',
-                            ),
-
-                            subtitle: Text(
-                                dob == null
-                                    ? ''
-                                    : '${dob!.day}/${dob!.month}/${dob!.year}',
-                            ),
-
-                            trailing:
-                                const Icon(
-                                Icons.calendar_month,
-                            ),
-
-                            onTap: () async {
-
-                                final picked =
-                                    await showDatePicker(
-                                context: context,
-
-                                firstDate:
-                                    DateTime(1900),
-
-                                lastDate:
-                                    DateTime.now(),
-
-                                initialDate:
-                                    dob ??
-                                    DateTime(
-                                        1990,
-                                    ),
-                                );
-
-                                if (picked != null) {
-
-                                setState(() {
-                                    dob = picked;
-                                });
-
-                                }
-
-                            },
-                            ),
-                        )
-                        : info(
-                            'Ngày sinh',
-                            patient!['dob'] == null
-                                ? ''
-                                : patient!['dob']
-                                    .toString()
-                                    .substring(0, 10),
-                        ),
-
-                    isEditing
-                        ? Card(
-                            child: Padding(
-                            padding:
-                                const EdgeInsets.all(
-                                12,
-                            ),
-                            child:
-                                DropdownButtonFormField<
-                                    String>(
-                                value: gender,
-
-                                decoration:
-                                    const InputDecoration(
-                                labelText:
-                                    'Giới tính',
-                                ),
-
-                                items: const [
-
-                                DropdownMenuItem(
-                                    value: 'MALE',
-                                    child: Text(
-                                    'Nam',
-                                    ),
-                                ),
-
-                                DropdownMenuItem(
-                                    value: 'FEMALE',
-                                    child: Text(
-                                    'Nữ',
-                                    ),
-                                ),
-
-                                ],
-
-                                onChanged: (value) {
-
-                                setState(() {
-                                    gender =
-                                        value!;
-                                });
-
-                                },
-                            ),
-                            ),
-                        )
-                        : info(
-                            'Giới tính',
-                            patient!['gender'] ?? '',
-                        ),
-
-                    isEditing
-                        ? editField(
-                            'Số điện thoại',
-                            phoneController,
-                        )
-                        : info(
-                            'Số điện thoại',
-                            patient!['phone'] ?? '',
-                        ),
-
-                    isEditing
-                        ? editField(
-                            'CCCD',
-                            citizenController,
-                        )
-                        : info(
-                            'CCCD',
-                            patient!['citizenId'] ?? '',
-                        ),
-
-                    isEditing
-                        ? editField(
-                            'Dân tộc',
-                            ethnicController,
-                        )
-                        : info(
-                            'Dân tộc',
-                            patient!['ethnic'] ?? '',
-                        ),
-
-                    isEditing
-                        ? editField(
-                            'Quốc tịch',
-                            nationalityController,
-                        )
-                        : info(
-                            'Quốc tịch',
-                            patient!['nationality'] ?? '',
-                        ),
-
-                    isEditing
-                        ? Card(
-                            child: Padding(
-                            padding:
-                                const EdgeInsets.all(12),
-                            child:
-                                DropdownButtonFormField<dynamic>(
-                                    value: selectedProvince,
-                                decoration:
-                                    const InputDecoration(
-                                labelText:
-                                    'Tỉnh/Thành',
-                                ),
-                                items: provinces.map((p) {
-                                return DropdownMenuItem(
-                                    value: p,
-                                    child: Text(
-                                    p['name'],
-                                    ),
-                                );
-                                }).toList(),
-                                onChanged: (value) async {
-
-                                    setState(() {
-                                        selectedProvince = value;
-                                        selectedWard = null;
-                                    });
-
-                                    final service = LocationService();
-
-                                    final result =
-                                        await service.getWardsByProvince(
-                                        (value as Map)['code'],
-                                    );
-
-                                    setState(() {
-                                        wards = result;
-                                    });
-                                },
-                            ),
-                            ),
-                        )
-                        : info(
-                            'Tỉnh/Thành',
-                            patient!['province'] ?? '',
-                        ),
-
-                    isEditing
-                    ? Card(
-                        child: Padding(
-                        padding:
-                            const EdgeInsets.all(12),
-                        child:
-                            DropdownButtonFormField<dynamic>(
-                            value: selectedWard,
-                            decoration:
-                                const InputDecoration(
-                            labelText:
-                                'Phường/Xã',
-                            ),
-                            items: wards.map((w) {
-                            return DropdownMenuItem(
-                                value: w,
-                                child: Text(
-                                w['name'],
-                                ),
-                            );
-                            }).toList(),
-                            onChanged: (value) async {
-
-                                if (value == null) return;
-
-                            setState(() {
-                                selectedWard =
-                                    value;
-                            });
-                            },
-                        ),
-                        ),
-                    )
-                    : info(
-                        'Phường/Xã',
-                        patient!['ward'] ?? '',
-                    ),
-
-                    isEditing
-                        ? editField(
-                            'BHYT',
-                            insuranceController,
-                        )
-                        : info(
-                            'BHYT',
-                            patient!['insuranceNo'] ?? '',
-                        ),
-
-                    const SizedBox(height: 20),
-
-                    SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton.icon(
-                            onPressed: () async {
-
-                                if (!isEditing) {
-
-                                    setState(() {
-                                    isEditing = true;
-                                    });
-
-                                    return;
-                                }
-
-                                await saveProfile();
-
-                                },
-
-                            icon: Icon(
-                            isEditing
-                                ? Icons.save
-                                : Icons.edit,
-                            ),
-
-                            label: Text(
-                            isEditing
-                                ? 'Lưu thay đổi'
-                                : 'Chỉnh sửa hồ sơ',
-                            ),
-                        ),
-                        ),
-
-
-
                   ],
                 ),
+              ),
+            ),
     );
   }
 }

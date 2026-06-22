@@ -1,4 +1,5 @@
 import 'package:dio/dio.dart';
+import 'package:flutter/foundation.dart';
 
 class LocationService {
   final Dio dio = Dio(
@@ -10,7 +11,7 @@ class LocationService {
   Future<List<dynamic>> getProvinces() async {
   final res = await dio.get('/v2/p/');
 
-  print('PROVINCES RESPONSE = ${res.data}');
+  debugPrint('PROVINCES RESPONSE = ${res.data}');
 
   return res.data;
 }

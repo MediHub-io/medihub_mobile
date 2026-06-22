@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../../../core/theme/app_colors.dart';
+
 class MenuCard extends StatefulWidget {
   final IconData icon;
   final String title;
@@ -15,123 +17,70 @@ class MenuCard extends StatefulWidget {
   });
 
   @override
-  State<MenuCard> createState() =>
-      _MenuCardState();
+  State<MenuCard> createState() => _MenuCardState();
 }
 
-class _MenuCardState
-    extends State<MenuCard> {
-
+class _MenuCardState extends State<MenuCard> {
   bool hovering = false;
 
   @override
-  Widget build(
-    BuildContext context,
-  ) {
+  Widget build(BuildContext context) {
     return MouseRegion(
-      cursor:
-          SystemMouseCursors.click,
-
+      cursor: SystemMouseCursors.click,
       onEnter: (_) {
         setState(() {
           hovering = true;
         });
       },
-
       onExit: (_) {
         setState(() {
           hovering = false;
         });
       },
-
-      child: GestureDetector(
+      child: InkWell(
+        borderRadius: BorderRadius.circular(16),
         onTap: widget.onTap,
-
-        child: AnimatedContainer(
-          duration:
-              const Duration(
-            milliseconds: 150,
-          ),
-
-          transform:
-              Matrix4.identity()
-                ..scale(
-                  hovering
-                      ? 1.03
-                      : 1.0,
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            AnimatedContainer(
+              duration: const Duration(milliseconds: 160),
+              width: 56,
+              height: 56,
+              decoration: BoxDecoration(
+                color: hovering
+                    ? AppColors.primaryLight.withValues(alpha: .65)
+                    : widget.color.withValues(alpha: .10),
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: hovering ? AppColors.primary.withValues(alpha: .35) : Colors.white,
+                  width: 4.5,
                 ),
-
-          decoration:
-              BoxDecoration(
-            color: Colors.white,
-
-            borderRadius:
-                BorderRadius.circular(
-              14,
+                boxShadow: const [
+                  BoxShadow(
+                    color: Color(0x14000000),
+                    blurRadius: 8,
+                    offset: Offset(0, 3),
+                  ),
+                ],
+              ),
+              child: Icon(widget.icon, size: 28, color: widget.color),
             ),
 
-            boxShadow: [
-              BoxShadow(
-                color: hovering
-                    ? Colors.black26
-                    : Colors.black12,
+            const SizedBox(height: 8),
 
-                blurRadius:
-                    hovering
-                        ? 12
-                        : 4,
-
-                offset:
-                    const Offset(
-                  0,
-                  2,
-                ),
+            Text(
+              widget.title,
+              textAlign: TextAlign.center,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: const TextStyle(
+                fontSize: 12,
+                fontWeight: FontWeight.w500,
+                height: 1.2,
               ),
-            ],
-          ),
-
-          child: Column(
-            mainAxisAlignment:
-                MainAxisAlignment.center,
-
-            children: [
-
-              CircleAvatar(
-                radius: 24,
-
-                backgroundColor:
-                    widget.color
-                        .withOpacity(
-                  .15,
-                ),
-
-                child: Icon(
-                  widget.icon,
-                  size: 28,
-                  color:
-                      widget.color,
-                ),
-              ),
-
-              const SizedBox(
-                height: 10,
-              ),
-
-              Text(
-                widget.title,
-
-                textAlign:
-                    TextAlign.center,
-
-                style:
-                    const TextStyle(
-                  fontSize: 13,
-                  fontWeight:
-                      FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );
